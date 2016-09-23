@@ -37,7 +37,7 @@ connect.io.on('connection', function(socket) {
 	socket.on('common.connectToRoom', function(data) {
 		// default parse
 		var obj = {error: false, content: ''};
-		// console.log('connecting to room');
+		console.log('connecting to room');
 		// create new promise
 		util.try(function(resolve, reject) {
 			if (typeof data.chatHash === 'undefined') {
@@ -53,14 +53,30 @@ connect.io.on('connection', function(socket) {
 				return reject(obj);
 			}
 			
+			/* check if there is an error */
+			if (obj.error) {
+				console.log('ERROR during connect Room : ', obj.error);
+			} 
+			
 			//identify memberType
 			switch (data.memberType) {
+				// register the teacher to the teacher's room
 				case 'teacher':	
 					handler.teacher.registerTeacher({
 						data: data
 					}, resolve, reject, socket);
 					break;
+				// register the student to the student's room
+				case 'student':
+					handler.student.registerStudent({
+						data: data
+					}, resolve, reject, socket);
+					break;
 			}
+		}).then(function() {
+			console.log("success");
+		}, function(err) {
+			console.log("[SOCKET] error on connect room, reason : ", err);
 		});
 	});
 });
