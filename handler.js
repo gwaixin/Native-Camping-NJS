@@ -4,5 +4,6 @@
  * - function list for the signaling actions
  */
 module.exports = {
-	teacher: require('./handler.teacher.js')
-}
+	teacher: require('./handler.teacher.js'),
+	student: require('./handler.student.js')
+};
