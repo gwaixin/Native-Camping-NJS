@@ -2,6 +2,7 @@ var _ = require('underscore');
 var promise = require("promise");
 var chalk = require('chalk');
 var moment = require('moment');
+var connect = require('./connect.js');
 
 module.exports = {
 	/**
@@ -29,6 +30,20 @@ module.exports = {
 	},
 	
 	/**
+	 * log error messages
+	 * @param message : content of error 
+	 */
+	logError: function(message) {
+		/* error message should not be empty */
+		if (typeof message === 'undefined' || message.length === 0) {
+			return false;
+		}
+		
+		/* log the error */
+		return this.log("[ERROR] " + message, 'red', 'white');
+	},
+	
+	/**
 	 * get the current time
 	 * @param format: set the current format
 	 */
@@ -48,7 +63,37 @@ module.exports = {
 	getIndex: function(list, filter) {
 		var index = _.findLastIndex(list, filter);
 		return index;
-	}
+	},
 	
+	/**
+	 * get the room index from chatrooms
+	 * @param  {String} chatHash   unique identifier for chatrooms
+	 * @return {int}               chathash room index
+	 */
+	getRoomIndexByChatHash: function(chatHash) {
+		/* check chatrooms if it is empty then return -1 */
+		if (typeof connect.chatRooms === 'undefined') {
+			return -1;
+		}
+	
+		var index = _.findLastIndex(connect.chatRooms, {room: chatHash});
+		return index;
+	},
+	
+	/**
+	 * remove useless indices
+	 * in an array
+	 * @param: array
+	 */
+	compact: function(list){
+		return _.compact(list);
+	},
+	
+	/**
+	 * extend the object
+	 */
+	 extend: function(parent, child) {
+		 return _.extend({}, parent, child);
+	 },
 	
 };
