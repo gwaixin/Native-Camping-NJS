@@ -24,10 +24,11 @@
 var connect = require("./connect.js");
 var handler = require("./handler.js");
 var util    = require("./util.js");
+var constant = require("./constant.js");
 
 /* socket connections */
 connect.io.on('connection', function(socket) {
-	console.log("socket connect hahah");
+	util.log("[SOCKET_CONNECT] init", 'yellow');
 	
 	
 	/**
@@ -37,7 +38,7 @@ connect.io.on('connection', function(socket) {
 	socket.on('common.connectToRoom', function(data) {
 		// default parse
 		var obj = {error: false, content: ''};
-		console.log('connecting to room');
+		util.log('[SOCKET_CONNECT] connect to room', 'yellow');
 		// create new promise
 		util.try(function(resolve, reject) {
 			if (typeof data.chatHash === 'undefined') {
@@ -55,7 +56,7 @@ connect.io.on('connection', function(socket) {
 			
 			/* check if there is an error */
 			if (obj.error) {
-				console.log('ERROR during connect Room : ', obj.error);
+				util.logError('ERROR during connect Room : ' + obj.error);
 			} 
 			
 			//identify memberType
@@ -73,10 +74,98 @@ connect.io.on('connection', function(socket) {
 					}, resolve, reject, socket);
 					break;
 			}
-		}).then(function() {
-			console.log("success");
-		}, function(err) {
-			console.log("[SOCKET] error on connect room, reason : ", err);
+		})
+		/* when connecting to the room is success */
+		.then(function() {
+			/* clean any empty values */
+			connect.chatRooms = util.compact(connect.chatRooms);
+
+			/* set socket information */
+			socket.userData = data;
+
+			/* join socket room */
+			socket.join(data.chatHash);
+
+			util.log("[ROOM_CONNECTION] SUCCESS" + green);
+		})
+		/* problem during connecting to the room  */
+		.catch(function(errors){
+			logger.create('NJSEG11', data.chatHash, {data: data, error: errors});
+			util.logError(" [ROOM_CONNECTION] " + errors);
+			obj.error = true;
+			obj.content = errors;
+		})
+
+		// always trigger this function
+		.then(function(){
+			return socket.emit('common.connectedToRoom', obj);
+		});
+	});
+	
+	/* socket disconnection */
+	socket.on('disconnect', function(action) {
+		util.log("[SOCKET_DISCONNECT] init", 'yellow');
+		var userData = (typeof socket.userData !== 'undefined') ? socket.userData : null;
+		
+		/* if user data is empty return false */
+		if (!userData) {
+			util.log("[SOCKET_DISCONNECT] user data is empty", "yellow");
+			return false;
+		}
+		
+		/* try executing the disconnection logic */
+		util.try(function(resolve, reject) {
+			// get the member type
+			var memberType = (typeof userData.memberType === 'undefined') ? 'unknown' : userData.memberType;
+			var command = "lessonDisconnect";
+			
+			/* check which user will perform disconnection */
+			switch(memberType) {
+				case 'student': 
+					command = constant.disconnect.student.sudden;
+					handler.student.studentLeaveRoom({
+						data: userData
+					}, connect.io, action, resolve, reject);
+					break;
+				case 'teacher':
+					command = constant.disconnect.teacher.sudden;
+					handler.teacher.teacherLeaveRoom({
+						data:userData
+					}, connect.io, action, resolve, reject);
+					break;
+				case 'admin':
+				 	// TODO
+					break;
+				default: 
+					return reject('[SOCKET_DISCONNECT] member type unknown');
+			}
+			
+			/* send sudden user disconnection emit */
+			if (action !== "client namespace disconnect" && action !== "server namespace disconnect") {
+				connect.io.in(userData.chatHash).emit('room.generalCommand', {command: command, content: userData});
+			}
+			
+			/* resolve */
+			return;
+			
+		})
+		
+		/* successful */
+		.then(function(command) {
+			util.log("[SOCKET_DISCONNECT] cleaning chatrooms", "yellow");
+			/* clean any empty values */
+			connect.chatRooms = util.compact(connect.chatRooms);
+		})
+		
+		/* fail, catch any errors that may occur */
+		.catch(function(errors) {
+			util.logError("[SOCKET_DISCONNECT] " + errors);
+		})
+		
+		// whether fail or success
+		.then(function() {
+			util.log("[CONNECTED_CLIENTS] -> " + connect.io.engine.clientsCount, "yellow");
+			socket.leave();
 		});
 	});
 });
