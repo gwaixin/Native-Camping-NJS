@@ -97,8 +97,7 @@ module.exports = {
 		/* disconnection will be commit after timewait */
 		connect.chatRooms[roomIndex].teacherDisconnect = setTimeout(function() {
 			if (typeof element.disconnectTeacher === 'function') { 
-				/* save as draft */
-				obj.lessonFinish = 0;
+				obj.lessonFinish = 5;
 				
 				element.disconnectTeacher(obj, resolve, reject);
 			} else {
@@ -131,9 +130,6 @@ module.exports = {
 		
 		/* get vars */
 		var data = obj.data;
-		
-		/* save as draft */
-		obj.lessonFinish = 1;
 		
 		/* clear the lesson */
 		model.clearLesson({chat_hash: data.chatHash}, data, obj.lessonFinish)

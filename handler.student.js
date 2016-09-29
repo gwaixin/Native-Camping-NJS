@@ -87,8 +87,7 @@ module.exports = {
 			
 			/* proceed to disconnection */
 			if (typeof element.disconnectStudent === 'function') { 
-				/* save as draft */
-				obj.lessonFinish = 0;
+				obj.lessonFinish = 5;
 				
 				element.disconnectStudent(obj, resolve, reject); 
 			} else {
