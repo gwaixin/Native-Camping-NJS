@@ -56,7 +56,7 @@ connect.io.on('connection', function(socket) {
 			
 			/* check if there is an error */
 			if (obj.error) {
-				util.logError('ERROR during connect Room : ' + obj.error);
+				util.logError('[ROOM_CONNECTION] ERROR during connect Room : ' + obj.error);
 			} 
 			
 			//identify memberType
@@ -86,12 +86,12 @@ connect.io.on('connection', function(socket) {
 			/* join socket room */
 			socket.join(data.chatHash);
 
-			util.log("[ROOM_CONNECTION] SUCCESS" + green);
+			util.log("[ROOM_CONNECTION] SUCCESS", 'yellow');
 		})
 		/* problem during connecting to the room  */
 		.catch(function(errors){
 			logger.create('NJSEG11', data.chatHash, {data: data, error: errors});
-			util.logError(" [ROOM_CONNECTION] " + errors);
+			util.logError("[ROOM_CONNECTION] " + errors);
 			obj.error = true;
 			obj.content = errors;
 		})
@@ -99,6 +99,94 @@ connect.io.on('connection', function(socket) {
 		// always trigger this function
 		.then(function(){
 			return socket.emit('common.connectedToRoom', obj);
+		});
+	});
+	
+	/**
+	 * @data: object
+	 * @data.command: type of command to be executed
+	 * @data.content: content of command, will depend on the command source
+	 * @callback: execute callback
+	 */
+	socket.on('room.generalCommand', function(data) {
+		/* default parse */
+		var obj = {error: false, content: ''};
+		
+		/* check if the data variable contains valid values */
+		if (typeof data.command === 'undefined' || typeof data.content === 'undefined') {
+			obj.error = true;
+			obj.content = "reason_invalid_room_command";
+			util.logError('[SOCKET_GENERAL_CMD] ' + obj.content, 'yellow');
+			return socket.emit('room.generalCommandSent', obj);
+		}
+		
+		/* set vars */
+		var command = data.command;
+		var content = data.content;
+		var mode = (typeof data.mode === 'undefined') ? 'all' : data.mode;
+		var lessonFinish = 0;
+		
+		/* try executing general command */
+		util.try(function(resolve, reject) {
+			
+			/* determine which command was called */
+			switch(command) {
+				/* teacher lesson disconnection set status */
+				case 'lessonDisconnect': lessonFinish = 1; break;               // when lesson is done, disconnect
+				case 'teacherLessonDisconnectOthers': lessonFinish = 2; break;  // when teacher go to others
+				case 'teacherTimedOut': lessonFinish = 3; break;                // when teacher got timeout
+			}
+			
+			
+			/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+			 * special cases that will be using common functions will be handle here *
+			 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+			 
+			/* handle teacher disconnection */
+			if (
+				'lessonDisconnect' ||
+				'teacherTimedOut'  ||
+				'teacherLessonDisconnectOthers'
+			) {
+				handler.teacher.disconnectTeacher({
+					data: content,
+					lessonFinish: lessonFinish
+				}, resolve, reject);
+			}
+		})
+		/* after successfully executing general command */
+		.then(function() {
+			/* clean any empty values */
+			connect.chatRooms = util.compact(connect.chatRooms);
+			/* broadcast only to other party */
+			if (mode === 'to') {
+				socket.broadcast.to(content.chatHash).emit('room.generalCommand', data);
+			/* broadcast including sender */
+			} else {
+				connect.io.in(content.chatHash).emit('room.generalCommand', data);
+			}
+			
+			// set content
+			obj.command = command;
+			obj.error = false;
+			obj.content = data;
+		})
+		
+		/* problem during executing general command */
+		.catch(function(errors) {
+			util.logError("[GENERAL_COMMAND] error: " + errors);
+			obj.error = true;
+			obj.content = errors;
+		})
+		
+		/* always trigger whether fail or success */
+		.then(function() {
+			obj = ({
+				command: command,
+				content: data.content,
+				error: obj.error
+			});
+			return socket.emit('room.generalCommandSent', obj);
 		});
 	});
 	
