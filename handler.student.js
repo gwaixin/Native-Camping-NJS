@@ -32,7 +32,13 @@ module.exports = {
 			connect.chatRooms[roomIndex].user !== null
 		) {
 			/* force reconnect student */
-			// TODO
+			util.log('[STUDENT_REGISTER] force reconnect student', 'green');
+		}
+		
+		/* check if disconnection exist timer starts */
+		if (typeof connect.chatRooms[roomIndex].studentDisconnect !== 'undefined' && connect.chatRooms[roomIndex].studentDisconnect !== false) {
+			util.log('[STUDENT_REGISTER] stops student from disconnection ', 'green');
+			clearTimeout(connect.chatRooms[roomIndex].studentDisconnect);
 		}
 		
 		/* insert the student int the room */
@@ -80,11 +86,18 @@ module.exports = {
 		if (roomIndex > -1) {
 			connect.chatRooms[roomIndex].user = null;
 			util.log('[STUDENT_LEAVE_ROOM] student is now empty', "green");
+		} else {
+			return reject('[STUDENT_LEAVE_ROOM] student already left');
 		}
 		
+		util.log('[STUDENT_LEAVE_ROOM] disconnection will be done after ' + constant.disconnect.timewait / 1000 + ' seconds', 'green');
 		/* disconnection will be commit after timewait */
 		connect.chatRooms[roomIndex].studentDisconnect = setTimeout(function() {
-			
+			/* check if disconnection was abort */
+			if (typeof connect.chatRooms[roomIndex] !== 'undefined' && connect.chatRooms[roomIndex].studentDisconnect === false) {
+				util.log('[STUDENT_LEAVE_ROOM] disconnection was aborted already', 'green');
+				return;
+			}
 			/* proceed to disconnection */
 			if (typeof element.disconnectStudent === 'function') { 
 				obj.lessonFinish = 5;

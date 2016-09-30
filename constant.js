@@ -9,7 +9,7 @@ module.exports = {
 	
 	/* disconnect patterns */
 	disconnect: {
-		timewait: 30000, // 30sec timeout delay
+		timewait: 60000, // 1 minute timeout delay
 		teacher: {
 			finished: "teacherLessonFinished",
 			sudden: "teacherSuddenDisconnect",

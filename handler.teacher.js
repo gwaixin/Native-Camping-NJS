@@ -42,8 +42,16 @@ module.exports = {
 			
 		/* otherwise add teacher to the teacher's index */
 		} else {
+			/* check if disconnection exist timer starts */
+			if (typeof connect.chatRooms[roomIndex].teacherDisconnect !== 'undefined' && connect.chatRooms[roomIndex].teacherDisconnect !== false) {
+				util.log('[TEACHER_REGISTER] stops teacher from disconnection ', 'green');
+				clearTimeout(connect.chatRooms[roomIndex].teacherDisconnect);
+			}
+			
+			/* update teacher chatroom data */
 			connect.chatRooms[roomIndex].teacher = data.teacherID;
 			connect.chatRooms[roomIndex].teacherDisconnect = false;
+			
 			// TODO
 		}
 		
@@ -94,19 +102,27 @@ module.exports = {
 			return reject('[TEACHER_LEAVE_ROOM] cannot find roomIndex');
 		}
 		
+		util.log('[TEACHER_LEAVE_ROOM] disconnection will be done after ' + constant.disconnect.timewait / 1000 + ' seconds', 'green');
 		/* disconnection will be commit after timewait */
 		connect.chatRooms[roomIndex].teacherDisconnect = setTimeout(function() {
+			util.log('[TEACHER_LEAVE_ROOM] disconnection wait time is over proceed to disconnect', 'green');
+			/* check if disconnection was abort */
+			if (typeof connect.chatRooms[roomIndex] !== 'undefined' && connect.chatRooms[roomIndex].teacherDisconnect === false) {
+				util.log('[TEACHER_LEAVE_ROOM] disconnection was aborted already', 'green');
+				return;
+			}
+			
 			if (typeof element.disconnectTeacher === 'function') { 
 				obj.lessonFinish = 5;
 				
 				element.disconnectTeacher(obj, resolve, reject);
+				
+				/* sends signal to other party that this teacher will leave */
+				socket.in(data.chatHash).emit('room.generalCommand', {command: constant.disconnect.teacher.timeOut, content:data});
 			} else {
 				reject('disconnectTeacher function does not implemented yet');
 			}
 		}, constant.disconnect.timewait);
-		
-		/* sends signal to other party that this teacher will leave */
-		return socket.in(data.chatHash).emit('room.generalCommand', {command: constant.disconnect.teacher.timeOut, content:data});
 	},
 	
 	/**
