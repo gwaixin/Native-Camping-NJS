@@ -33,12 +33,14 @@ module.exports = {
 		/* if the room does not exist, then create room */
 		if (roomIndex <= -1) {
 			util.log('[TEACHER_REGISTER] adding new room', 'green');
-			connect.chatRooms.push({
+			
+			/* push new room then update roomIndex */
+			roomIndex = connect.chatRooms.push({
 				room: data.chatHash,
 				teacher: data.teacherID,
 				created: util.getCurrentTime(),
 				teacherDisconnect: false
-			});
+			}) - 1;
 			
 		/* otherwise add teacher to the teacher's index */
 		} else {
@@ -50,8 +52,6 @@ module.exports = {
 			
 			/* update teacher chatroom data */
 			connect.chatRooms[roomIndex].teacher = data.teacherID;
-			connect.chatRooms[roomIndex].teacherDisconnect = false;
-			
 			// TODO
 		}
 		
@@ -65,6 +65,10 @@ module.exports = {
 		
 		/* success on updating Onair */
 		}).then(function() {
+			/* To prevent disconnection when connected to room */
+			connect.chatRooms[roomIndex].teacherDisconnect = false;
+			/* send information to teacher, that student already connected */
+			socket.in(data.chatHash).emit('room.generalCommand', {command: constant.connect.teacher.success, content: data});
 			return resolve();
 		})
 		

@@ -7,6 +7,18 @@ module.exports = {
 		lessonTime: 1560
 	},
 	
+	/* connect pattern */
+	connect: {
+		teacher: {
+			success: "teacherConnected",
+			failed: "teacherFailConnect"
+		},
+		student: {
+			success: 'studentConnected',
+			fail: 'studentFailConnect'
+		}
+	},
+	
 	/* disconnect patterns */
 	disconnect: {
 		timewait: 60000, // 1 minute timeout delay

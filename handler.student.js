@@ -55,6 +55,9 @@ module.exports = {
 			connect.chatRooms[roomIndex].start = util.getCurrentTime();
 		}
 		
+		/* send information to teacher, that student already connected */
+		socket.in(data.chatHash).emit('room.generalCommand', {command: constant.connect.student.success, content: data});
+		
 		return resolve();
 	},
 	
