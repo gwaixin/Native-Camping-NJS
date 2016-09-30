@@ -135,6 +135,23 @@ connect.io.on('connection', function(socket) {
 				case 'lessonDisconnect': lessonFinish = 1; break;               // when lesson is done, disconnect
 				case 'teacherLessonDisconnectOthers': lessonFinish = 2; break;  // when teacher go to others
 				case 'teacherTimedOut': lessonFinish = 3; break;                // when teacher got timeout
+				
+				/* student end lesson */
+				case 'studentLessonFinished': 
+					lessonFinish = 4; 
+					handler.student.disconnectStudent({
+						data: content,
+						lessonFinish: lessonFinish
+					}, resolve, reject);
+					break;
+				
+				/* sending chat */
+				case 'sendChat': 
+					handler.common.sendChat({
+						data: content,
+						mode: 'to'
+					}, resolve);
+					break;
 			}
 			
 			
@@ -144,9 +161,9 @@ connect.io.on('connection', function(socket) {
 			 
 			/* handle teacher disconnection */
 			if (
-				'lessonDisconnect' ||
-				'teacherTimedOut'  ||
-				'teacherLessonDisconnectOthers'
+				command === 'lessonDisconnect' ||
+				command === 'teacherTimedOut'  ||
+				command === 'teacherLessonDisconnectOthers'
 			) {
 				handler.teacher.disconnectTeacher({
 					data: content,
